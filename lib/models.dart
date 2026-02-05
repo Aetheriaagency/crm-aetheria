@@ -1,4 +1,4 @@
-// Models para AetherIA CRM
+// Models para AetherIA CRM - Versión Optimizada
 
 class Lead {
   final String id;
@@ -33,24 +33,31 @@ class Lead {
         notes = notes ?? [],
         activities = activities ?? [];
 
+  // ⭐ NUEVO: copyWith completo para edición total
   Lead copyWith({
+    String? company,
+    String? contact,
+    String? email,
+    String? phone,
     String? stage,
     double? amount,
     String? assignedTo,
+    String? sector,
+    String? teamSize,
     List<Note>? notes,
     List<Activity>? activities,
   }) {
     return Lead(
       id: id,
-      company: company,
-      contact: contact,
-      email: email,
-      phone: phone,
+      company: company ?? this.company,
+      contact: contact ?? this.contact,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
       stage: stage ?? this.stage,
       amount: amount ?? this.amount,
       assignedTo: assignedTo ?? this.assignedTo,
-      sector: sector,
-      teamSize: teamSize,
+      sector: sector ?? this.sector,
+      teamSize: teamSize ?? this.teamSize,
       createdAt: createdAt,
       notes: notes ?? this.notes,
       activities: activities ?? this.activities,
@@ -141,7 +148,7 @@ class Salesperson {
   final String id;
   final String name;
   final String email;
-  final String password; // Contraseña encriptada (en producción usar hash)
+  final String password;
   final String? phone;
   final String team;
   final bool isActive;
@@ -158,13 +165,17 @@ class Salesperson {
     this.permissions = const [],
   });
 
-  Salesperson copyWith({bool? isActive, String? password}) {
+  Salesperson copyWith({
+    bool? isActive,
+    String? password,
+    String? phone,
+  }) {
     return Salesperson(
       id: id,
       name: name,
       email: email,
       password: password ?? this.password,
-      phone: phone,
+      phone: phone ?? this.phone,
       team: team,
       isActive: isActive ?? this.isActive,
       permissions: permissions,
@@ -172,19 +183,19 @@ class Salesperson {
   }
 }
 
-// Modelo para reuniones de calendario
+// ⭐ NUEVO: Modelo de reunión con estados
 class Meeting {
   final String id;
   final String title;
   final String? description;
   final DateTime startTime;
   final DateTime endTime;
-  final String assignedTo; // Nombre del vendedor (no email)
-  final String? leadId; // Lead relacionado (opcional)
-  final String? leadName; // Nombre del lead para mostrar
+  final String assignedTo;
+  final String? leadId;
+  final String? leadName;
   final String location;
   final List<String> attendees;
-  final bool isCompleted;
+  final String status; // ⭐ 'pending', 'completed', 'lost'
   final String createdBy;
 
   Meeting({
@@ -198,41 +209,57 @@ class Meeting {
     this.leadName,
     this.location = '',
     this.attendees = const [],
-    this.isCompleted = false,
+    this.status = 'pending',
     required this.createdBy,
   });
 
-  Meeting copyWith({bool? isCompleted}) {
+  Meeting copyWith({
+    String? title,
+    String? description,
+    DateTime? startTime,
+    DateTime? endTime,
+    String? assignedTo,
+    String? leadId,
+    String? leadName,
+    String? location,
+    List<String>? attendees,
+    String? status,
+    String? createdBy,
+  }) {
     return Meeting(
       id: id,
-      title: title,
-      description: description,
-      startTime: startTime,
-      endTime: endTime,
-      assignedTo: assignedTo,
-      leadId: leadId,
-      leadName: leadName,
-      location: location,
-      attendees: attendees,
-      isCompleted: isCompleted ?? this.isCompleted,
-      createdBy: createdBy,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+      assignedTo: assignedTo ?? this.assignedTo,
+      leadId: leadId ?? this.leadId,
+      leadName: leadName ?? this.leadName,
+      location: location ?? this.location,
+      attendees: attendees ?? this.attendees,
+      status: status ?? this.status,
+      createdBy: createdBy ?? this.createdBy,
     );
   }
+
+  // Helpers para estados
+  bool get isPending => status == 'pending';
+  bool get isCompleted => status == 'completed';
+  bool get isLost => status == 'lost';
 }
 
-// Modelo para facturas de agentes
 class Invoice {
   final String id;
-  final String salespersonName; // Nombre del agente
-  final String salespersonEmail; // Email del agente
-  final String month; // Mes de facturación (ej: "Enero 2026")
-  final double totalAmount; // Total facturado del mes
-  final int closedLeadsCount; // Número de leads cerrados
-  final String? pdfFileName; // Nombre del archivo PDF
-  final String? pdfUrl; // URL del PDF (simulado por ahora)
+  final String salespersonName;
+  final String salespersonEmail;
+  final String month;
+  final double totalAmount;
+  final int closedLeadsCount;
+  final String? pdfFileName;
+  final String? pdfUrl;
   final DateTime uploadedAt;
-  final String status; // 'Pendiente', 'Subida', 'Pagada'
-  final String? notes; // Notas adicionales
+  final String status;
+  final String? notes;
 
   Invoice({
     required this.id,

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'models.dart';
 
 class CRMProvider with ChangeNotifier {
-  String? _currentRole; // 'admin' or 'vendedor'
-  String? _currentSalesperson; // Email del vendedor actual
-  String? _currentSalespersonName; // Nombre del vendedor actual
-  String? _espejoSalesperson; // Para modo espejo del admin
+  String? _currentRole;
+  String? _currentSalesperson;
+  String? _currentSalespersonName;
+  String? _espejoSalesperson;
 
   String? get currentRole => _currentRole;
   String? get currentSalesperson => _currentSalesperson;
@@ -30,8 +30,26 @@ class CRMProvider with ChangeNotifier {
     return false;
   }
 
-  // Autenticación admin (credenciales fijas por ahora)
+  // ⭐ MEJORADO: Admin puede ser vendedor con permiso especial
   bool authenticateAdmin(String email, String password) {
+    // Buscar vendedor con permiso admin
+    final admin = _allSalespersons.firstWhere(
+      (s) => s.email == email && 
+             s.password == password && 
+             s.permissions.contains('admin') &&
+             s.isActive,
+      orElse: () => Salesperson(id: '', name: '', email: '', password: '', team: ''),
+    );
+    
+    if (admin.id.isNotEmpty) {
+      _currentRole = 'admin';
+      _currentSalesperson = email;
+      _currentSalespersonName = admin.name;
+      notifyListeners();
+      return true;
+    }
+    
+    // Fallback al admin hardcodeado (temporal)
     if (email == 'admin@aetheria.com' && password == 'admin123') {
       _currentRole = 'admin';
       _currentSalesperson = null;
@@ -39,6 +57,7 @@ class CRMProvider with ChangeNotifier {
       notifyListeners();
       return true;
     }
+    
     return false;
   }
 
@@ -86,9 +105,9 @@ class CRMProvider with ChangeNotifier {
   ];
 
   List<Task> _allTasks = [
-    Task(id: '1', title: 'Llamar para agendar reunión diagnóstico', leadId: '1', assignedTo: 'David Jiménez', dueDate: DateTime.now()),
-    Task(id: '2', title: 'Seguimiento 24h - Cliente en duda', leadId: '5', isFollowUp: true, assignedTo: 'David Jiménez', dueDate: DateTime.now()),
-    Task(id: '3', title: 'Enviar propuesta personalizada', leadId: '2', assignedTo: 'Iván Jiménez', dueDate: DateTime.now()),
+    Task(id: '1', title: 'Llamar para agendar reunión diagnóstico', leadId: '1', assignedTo: 'David Jiménez', dueDate: DateTime.now().add(const Duration(hours: 14))),
+    Task(id: '2', title: 'Seguimiento 24h - Cliente en duda', leadId: '5', isFollowUp: true, assignedTo: 'David Jiménez', dueDate: DateTime.now().add(const Duration(hours: 8))),
+    Task(id: '3', title: 'Enviar propuesta personalizada', leadId: '2', assignedTo: 'Iván Jiménez', dueDate: DateTime.now().add(const Duration(hours: 16))),
   ];
 
   List<Team> _allTeams = [
@@ -107,10 +126,11 @@ class CRMProvider with ChangeNotifier {
       description: 'Diagnóstico completo de necesidades',
       startTime: DateTime.now().add(const Duration(days: 1, hours: 10)),
       endTime: DateTime.now().add(const Duration(days: 1, hours: 11)),
-      assignedTo: 'David Jiménez', // Usar nombre en vez de email
+      assignedTo: 'David Jiménez',
       leadId: '1',
       leadName: 'TechStart Solutions',
       location: 'Oficina AetherIA',
+      status: 'pending', // ⭐ CAMBIO
       createdBy: 'Administrador',
     ),
     Meeting(
@@ -119,10 +139,11 @@ class CRMProvider with ChangeNotifier {
       description: 'Presentar propuesta de automatización',
       startTime: DateTime.now().add(const Duration(days: 2, hours: 15)),
       endTime: DateTime.now().add(const Duration(days: 2, hours: 16, minutes: 30)),
-      assignedTo: 'Iván Jiménez', // Usar nombre en vez de email
+      assignedTo: 'Iván Jiménez',
       leadId: '4',
       leadName: 'E-Commerce Moda',
       location: 'Videollamada',
+      status: 'pending', // ⭐ CAMBIO
       createdBy: 'Administrador',
     ),
   ];
@@ -131,24 +152,32 @@ class CRMProvider with ChangeNotifier {
   List<Lead> get allLeads => _allLeads;
   List<Team> get allTeams => _allTeams;
   List<Salesperson> get allSalespersons => _allSalespersons;
-  List<Meeting> get allMeetings => _allMeetings;
+  
+  // ⭐ NUEVO: Ordenar reuniones por hora
+  List<Meeting> get allMeetings {
+    final sorted = List<Meeting>.from(_allMeetings);
+    sorted.sort((a, b) => a.startTime.compareTo(b.startTime));
+    return sorted;
+  }
 
   List<Lead> get leads {
     if (_currentRole == 'admin' && !isEspejoMode) return _allLeads;
     final targetSalesperson = isEspejoMode ? _espejoSalesperson : _currentSalespersonName;
-    print('🔍 Filtrando leads para: $targetSalesperson');
-    final filteredLeads = _allLeads.where((l) {
-      print('  Lead: ${l.company} - assignedTo: ${l.assignedTo}');
-      return l.assignedTo == targetSalesperson;
-    }).toList();
-    print('  Total filtrados: ${filteredLeads.length}');
-    return filteredLeads;
+    return _allLeads.where((l) => l.assignedTo == targetSalesperson).toList();
   }
 
+  // ⭐ NUEVO: Ordenar tareas por hora de vencimiento
   List<Task> get tasks {
-    if (_currentRole == 'admin' && !isEspejoMode) return _allTasks;
-    final targetSalesperson = isEspejoMode ? _espejoSalesperson : _currentSalespersonName;
-    return _allTasks.where((t) => t.assignedTo == targetSalesperson).toList();
+    List<Task> filtered;
+    if (_currentRole == 'admin' && !isEspejoMode) {
+      filtered = _allTasks;
+    } else {
+      final targetSalesperson = isEspejoMode ? _espejoSalesperson : _currentSalespersonName;
+      filtered = _allTasks.where((t) => t.assignedTo == targetSalesperson).toList();
+    }
+    // Ordenar por fecha de vencimiento
+    filtered.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    return filtered;
   }
 
   Map<String, int> get stageCount {
@@ -160,34 +189,44 @@ class CRMProvider with ChangeNotifier {
     return count;
   }
 
+  // ⭐ NUEVO: Ordenar reuniones por hora
   List<Meeting> get meetings {
-    if (_currentRole == 'admin' && !isEspejoMode) return _allMeetings;
-    final targetSalesperson = isEspejoMode ? _espejoSalesperson : _currentSalespersonName;
-    print('🔍 Filtrando reuniones para: $targetSalesperson');
-    final filteredMeetings = _allMeetings.where((m) {
-      print('  Reunión: ${m.title} - assignedTo: ${m.assignedTo}');
-      return m.assignedTo == targetSalesperson;
-    }).toList();
-    print('  Total reuniones filtradas: ${filteredMeetings.length}');
-    return filteredMeetings;
+    List<Meeting> filtered;
+    if (_currentRole == 'admin' && !isEspejoMode) {
+      filtered = _allMeetings;
+    } else {
+      final targetSalesperson = isEspejoMode ? _espejoSalesperson : _currentSalespersonName;
+      filtered = _allMeetings.where((m) => m.assignedTo == targetSalesperson).toList();
+    }
+    // Ordenar por hora de inicio
+    filtered.sort((a, b) => a.startTime.compareTo(b.startTime));
+    return filtered;
   }
 
-  // Obtener reuniones por día
+  // ⭐ NUEVO: Obtener reuniones por día ordenadas por hora
   List<Meeting> getMeetingsByDate(DateTime date) {
-    return meetings.where((m) {
+    final dayMeetings = meetings.where((m) {
       return m.startTime.year == date.year &&
              m.startTime.month == date.month &&
              m.startTime.day == date.day;
     }).toList();
+    // Ya están ordenadas por la función meetings
+    return dayMeetings;
   }
 
-  // CRUD OPERATIONS
-  
-  // Leads
+  // CRUD OPERATIONS - Leads
   void addLead(Lead lead) {
     _allLeads.add(lead);
-    print('✅ Lead añadido: ${lead.company} - Total leads: ${_allLeads.length}');
     notifyListeners();
+  }
+
+  // ⭐ NUEVO: Actualizar lead completo (editable por todos)
+  void updateLead(Lead updatedLead) {
+    final index = _allLeads.indexWhere((l) => l.id == updatedLead.id);
+    if (index != -1) {
+      _allLeads[index] = updatedLead;
+      notifyListeners();
+    }
   }
 
   void updateLeadStage(String leadId, String newStage) {
@@ -195,7 +234,6 @@ class CRMProvider with ChangeNotifier {
     if (index != -1) {
       _allLeads[index] = _allLeads[index].copyWith(stage: newStage);
       
-      // Si está en Cerrado y tiene duda, crear tarea de seguimiento
       if (newStage == 'Cerrado') {
         final lead = _allLeads[index];
         _allTasks.add(Task(
@@ -210,6 +248,35 @@ class CRMProvider with ChangeNotifier {
       }
       
       notifyListeners();
+    }
+  }
+
+  void updateLeadInfo(
+    String leadId, {
+    String? company,
+    String? contact,
+    String? email,
+    String? phone,
+    String? sector,
+    String? teamSize,
+    double? amount,
+  }) {
+    final index = _allLeads.indexWhere((l) => l.id == leadId);
+    if (index != -1) {
+      _allLeads[index] = _allLeads[index].copyWith(
+        company: company ?? _allLeads[index].company,
+        contact: contact ?? _allLeads[index].contact,
+        email: email ?? _allLeads[index].email,
+        phone: phone ?? _allLeads[index].phone,
+        sector: sector ?? _allLeads[index].sector,
+        teamSize: teamSize ?? _allLeads[index].teamSize,
+        amount: amount ?? _allLeads[index].amount,
+      );
+      print('🔄 Lead actualizado: ${_allLeads[index].company}');
+      print('   ID: $leadId');
+      notifyListeners();
+    } else {
+      print('❌ Lead no encontrado: $leadId');
     }
   }
 
@@ -259,7 +326,6 @@ class CRMProvider with ChangeNotifier {
     }
   }
 
-  // Editar actividad (solo para admin)
   void updateActivity(String leadId, String activityId, String newType, String newDescription) {
     final index = _allLeads.indexWhere((l) => l.id == leadId);
     if (index != -1) {
@@ -282,7 +348,6 @@ class CRMProvider with ChangeNotifier {
     }
   }
 
-  // Eliminar actividad (solo para admin)
   void deleteActivity(String leadId, String activityId) {
     final index = _allLeads.indexWhere((l) => l.id == leadId);
     if (index != -1) {
@@ -293,7 +358,6 @@ class CRMProvider with ChangeNotifier {
     }
   }
 
-  // Editar nota (solo para admin)
   void updateNote(String leadId, String noteId, String newText) {
     final index = _allLeads.indexWhere((l) => l.id == leadId);
     if (index != -1) {
@@ -315,7 +379,6 @@ class CRMProvider with ChangeNotifier {
     }
   }
 
-  // Eliminar nota (solo para admin)
   void deleteNote(String leadId, String noteId) {
     final index = _allLeads.indexWhere((l) => l.id == leadId);
     if (index != -1) {
@@ -384,17 +447,17 @@ class CRMProvider with ChangeNotifier {
     }
   }
 
-  // Meetings
+  // ⭐ NUEVO: Meetings con estados
   void addMeeting(Meeting meeting) {
     _allMeetings.add(meeting);
-    print('✅ Reunión añadida: ${meeting.title} - Total reuniones: ${_allMeetings.length}');
     notifyListeners();
   }
 
-  void updateMeetingStatus(String meetingId, bool isCompleted) {
+  // ⭐ NUEVO: Actualizar estado (string en vez de bool)
+  void updateMeetingStatus(String meetingId, String newStatus) {
     final index = _allMeetings.indexWhere((m) => m.id == meetingId);
     if (index != -1) {
-      _allMeetings[index] = _allMeetings[index].copyWith(isCompleted: isCompleted);
+      _allMeetings[index] = _allMeetings[index].copyWith(status: newStatus);
       notifyListeners();
     }
   }
@@ -412,17 +475,14 @@ class CRMProvider with ChangeNotifier {
     }
   }
 
-  // ===== GESTIÓN DE FACTURACIÓN =====
-  
+  // GESTIÓN DE FACTURACIÓN
   List<Invoice> _allInvoices = [];
   
   List<Invoice> get allInvoices => _allInvoices;
   
-  // Calcular facturación de un agente en un mes específico
   Map<String, dynamic> calculateSalespersonBilling(String salespersonName, {DateTime? month}) {
     final targetMonth = month ?? DateTime.now();
     
-    // Obtener leads cerrados del agente en ese mes
     final closedLeads = _allLeads.where((lead) {
       return lead.assignedTo == salespersonName &&
              lead.stage == 'Cerrado' &&
@@ -441,7 +501,6 @@ class CRMProvider with ChangeNotifier {
     };
   }
   
-  // Calcular facturación total de todos los agentes
   List<Map<String, dynamic>> calculateAllSalespersonsBilling({DateTime? month}) {
     final targetMonth = month ?? DateTime.now();
     
@@ -450,13 +509,11 @@ class CRMProvider with ChangeNotifier {
     }).toList();
   }
   
-  // Agregar factura
   void addInvoice(Invoice invoice) {
     _allInvoices.add(invoice);
     notifyListeners();
   }
   
-  // Actualizar factura (para agregar PDF)
   void updateInvoice(String invoiceId, {String? pdfFileName, String? pdfUrl, String? status, String? notes}) {
     final index = _allInvoices.indexWhere((inv) => inv.id == invoiceId);
     if (index != -1) {
@@ -470,17 +527,14 @@ class CRMProvider with ChangeNotifier {
     }
   }
   
-  // Obtener facturas de un agente
   List<Invoice> getInvoicesBySalesperson(String salespersonName) {
     return _allInvoices.where((inv) => inv.salespersonName == salespersonName).toList();
   }
   
-  // Obtener facturas pendientes
   List<Invoice> get pendingInvoices {
     return _allInvoices.where((inv) => inv.status == 'Pendiente').toList();
   }
   
-  // Eliminar factura
   void updateInvoiceStatus(String invoiceId, String newStatus) {
     final index = _allInvoices.indexWhere((inv) => inv.id == invoiceId);
     if (index != -1) {

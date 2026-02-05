@@ -530,23 +530,41 @@ class _CalendarScreenState extends State<CalendarScreen> {
             _DetailRow(
               Icons.check_circle,
               'Estado',
-              meeting.isCompleted ? 'Completada' : 'Pendiente',
+              meeting.isCompleted 
+                  ? '✓ Completada' 
+                  : meeting.isLost
+                      ? '✗ Perdida'
+                      : '○ Pendiente',
             ),
           ],
         ),
         actions: [
-          if (!meeting.isCompleted)
+          if (!meeting.isCompleted && !meeting.isLost) ...[
             TextButton(
               onPressed: () {
-                provider.updateMeetingStatus(meeting.id, true);
+                provider.updateMeetingStatus(meeting.id, 'completed');
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Reunión marcada como completada'), backgroundColor: Colors.green),
                 );
                 setState(() {});
               },
-              child: const Text('Marcar como Completada'),
+              style: TextButton.styleFrom(foregroundColor: Colors.green),
+              child: const Text('✓ Completada'),
             ),
+            TextButton(
+              onPressed: () {
+                provider.updateMeetingStatus(meeting.id, 'lost');
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Reunión marcada como perdida'), backgroundColor: Colors.orange),
+                );
+                setState(() {});
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.orange),
+              child: const Text('✗ Perdida'),
+            ),
+          ],
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cerrar'),
@@ -606,6 +624,8 @@ class _MeetingCard extends StatelessWidget {
                   ),
                   if (meeting.isCompleted)
                     const Icon(Icons.check_circle, color: Colors.green, size: 24)
+                  else if (meeting.isLost)
+                    const Icon(Icons.cancel, color: Colors.orange, size: 24)
                   else
                     const Icon(Icons.circle_outlined, color: Color(0xFF9E9E9E), size: 24),
                 ],

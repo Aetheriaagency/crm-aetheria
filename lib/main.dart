@@ -768,21 +768,25 @@ class _VendedorDashboardState extends State<VendedorDashboard> with SingleTicker
           const SizedBox(height: 24),
           const Text('Pipeline de Ventas', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textLight)),
           const SizedBox(height: 16),
-          SizedBox(
-            height: 400,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                _StageColumn('Contactado', provider, context),
-                _StageColumn('Reunión Agendada', provider, context),
-                _StageColumn('Seguimiento', provider, context),
-                _StageColumn('Presupuestado', provider, context),
-                _StageColumn('Cerrado', provider, context),
-                _StageColumn('Onboarding', provider, context),
-                _StageColumn('Lost', provider, context),
-                _StageColumn('Ghosting', provider, context),
-              ],
-            ),
+          // Grid de 4 columnas sin scroll horizontal
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final stages = ['Contactado', 'Reunión Agendada', 'Seguimiento', 'Presupuestado', 'Cerrado', 'Onboarding', 'Lost', 'Ghosting'];
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  childAspectRatio: 0.8,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: stages.length,
+                itemBuilder: (context, index) {
+                  return _StageColumnGrid(stages[index], provider, context);
+                },
+              );
+            },
           ),
           const SizedBox(height: 24),
           Row(
@@ -1049,6 +1053,125 @@ class _KPICard extends StatelessWidget {
             Text(label, style: const TextStyle(fontSize: 14, color: AppColors.textGray)),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// Widget de columna compacta para Grid (sin scroll horizontal)
+class _StageColumnGrid extends StatelessWidget {
+  final String stage;
+  final CRMProvider provider;
+  final BuildContext parentContext;
+
+  const _StageColumnGrid(this.stage, this.provider, this.parentContext);
+
+  @override
+  Widget build(BuildContext context) {
+    final stageLeads = provider.leads.where((l) => l.stage == stage).toList();
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primaryPurple.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header compacto
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [AppColors.primaryPurple, AppColors.primaryBlue]),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    stage,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    stageLeads.length.toString(),
+                    style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Leads compactos
+          Expanded(
+            child: stageLeads.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Text(
+                        'Sin leads',
+                        style: TextStyle(color: AppColors.textGray, fontSize: 11),
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(8),
+                    itemCount: stageLeads.length,
+                    itemBuilder: (context, index) {
+                      final lead = stageLeads[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        color: AppColors.backgroundDark,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.of(parentContext).push(
+                              MaterialPageRoute(builder: (_) => LeadDetailScreen(leadId: lead.id)),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  lead.company,
+                                  style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textLight, fontSize: 12),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  lead.contact,
+                                  style: const TextStyle(fontSize: 10, color: AppColors.textGray),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '€${lead.amount.toStringAsFixed(0)}',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryPurple, fontSize: 11),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }

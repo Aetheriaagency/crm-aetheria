@@ -54,12 +54,33 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {
-              if (value == 'reassign') {
+              if (value == 'edit') {
+                _showEditLeadDialog(context, provider, lead);
+              } else if (value == 'reassign') {
                 _showReassignDialog(context, lead);
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(value: 'reassign', child: Text('Reasignar vendedor')),
+              const PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit, color: AppColors.primaryPurple),
+                    SizedBox(width: 12),
+                    Text('Editar Lead'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'reassign',
+                child: Row(
+                  children: [
+                    Icon(Icons.swap_horiz, color: AppColors.primaryPurple),
+                    SizedBox(width: 12),
+                    Text('Reasignar vendedor'),
+                  ],
+                ),
+              ),
             ],
           ),
         ],
@@ -119,21 +140,17 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
                         ),
                       ],
                     ),
-                    if (lead.sector != null || lead.teamSize != null) ...[
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          if (lead.sector != null)
-                            Expanded(
-                              child: _InfoItem(Icons.business_center, 'Sector', lead.sector!),
-                            ),
-                          if (lead.teamSize != null)
-                            Expanded(
-                              child: _InfoItem(Icons.people, 'Tamaño Equipo', '${lead.teamSize} personas'),
-                            ),
-                        ],
-                      ),
-                    ],
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _InfoItem(Icons.business_center, 'Sector', lead.sector),
+                        ),
+                        Expanded(
+                          child: _InfoItem(Icons.people, 'Tamaño Equipo', lead.teamSize),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 16),
                     _InfoItem(Icons.person_outline, 'Asignado a', lead.assignedTo),
                   ],
@@ -306,6 +323,297 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
     );
   }
 
+  void _showEditLeadDialog(BuildContext context, CRMProvider provider, Lead lead) {
+    final companyController = TextEditingController(text: lead.company);
+    final contactController = TextEditingController(text: lead.contact);
+    final emailController = TextEditingController(text: lead.email);
+    final phoneController = TextEditingController(text: lead.phone);
+    final sectorController = TextEditingController(text: lead.sector ?? '');
+    final teamSizeController = TextEditingController(text: lead.teamSize ?? '');
+    final amountController = TextEditingController(text: lead.amount.toStringAsFixed(0));
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardDark,
+        title: const Text('Editar Lead', style: TextStyle(color: AppColors.textLight)),
+        content: SingleChildScrollView(
+          child: SizedBox(
+            width: 500,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: companyController,
+                  style: const TextStyle(color: AppColors.textLight),
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre de la Empresa *',
+                    labelStyle: TextStyle(color: AppColors.textGray),
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.business, color: AppColors.primaryPurple),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: contactController,
+                  style: const TextStyle(color: AppColors.textLight),
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre del Contacto *',
+                    labelStyle: TextStyle(color: AppColors.textGray),
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person, color: AppColors.primaryPurple),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: emailController,
+                  style: const TextStyle(color: AppColors.textLight),
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email *',
+                    labelStyle: TextStyle(color: AppColors.textGray),
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email, color: AppColors.primaryPurple),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: phoneController,
+                  style: const TextStyle(color: AppColors.textLight),
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Teléfono *',
+                    labelStyle: TextStyle(color: AppColors.textGray),
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.phone, color: AppColors.primaryPurple),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: sectorController,
+                  style: const TextStyle(color: AppColors.textLight),
+                  decoration: const InputDecoration(
+                    labelText: 'Sector',
+                    labelStyle: TextStyle(color: AppColors.textGray),
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.business_center, color: AppColors.primaryPurple),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: teamSizeController,
+                  style: const TextStyle(color: AppColors.textLight),
+                  decoration: const InputDecoration(
+                    labelText: 'Tamaño del Equipo',
+                    labelStyle: TextStyle(color: AppColors.textGray),
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.people, color: AppColors.primaryPurple),
+                    hintText: 'Ej: 10-50',
+                    hintStyle: TextStyle(color: AppColors.textGray),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: amountController,
+                  style: const TextStyle(color: AppColors.textLight),
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Monto Estimado (€) *',
+                    labelStyle: TextStyle(color: AppColors.textGray),
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.euro, color: AppColors.primaryPurple),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.textGray)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // Validación básica
+              if (companyController.text.isEmpty || 
+                  contactController.text.isEmpty || 
+                  emailController.text.isEmpty || 
+                  phoneController.text.isEmpty ||
+                  amountController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Por favor completa todos los campos obligatorios'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              print('🔍 DEBUG - Editando lead:');
+              print('   Lead ID: ${lead.id}');
+              print('   Company: ${companyController.text}');
+              print('   Contact: ${contactController.text}');
+              print('   Email: ${emailController.text}');
+              print('   Phone: ${phoneController.text}');
+              print('   Amount: ${amountController.text}');
+
+              // Actualizar lead
+              provider.updateLeadInfo(
+                lead.id,
+                company: companyController.text,
+                contact: contactController.text,
+                email: emailController.text,
+                phone: phoneController.text,
+                sector: sectorController.text.isEmpty ? null : sectorController.text,
+                teamSize: teamSizeController.text.isEmpty ? null : teamSizeController.text,
+                amount: double.tryParse(amountController.text) ?? lead.amount,
+              );
+
+              Navigator.of(context).pop();
+              
+              // Forzar actualización del estado
+              setState(() {});
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Lead actualizado exitosamente'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryPurple,
+            ),
+            child: const Text('Guardar Cambios'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showQuickEditDialog(BuildContext context, CRMProvider provider, Lead lead, String field, String currentValue) {
+    final controller = TextEditingController(text: currentValue);
+    String fieldLabel = '';
+    IconData fieldIcon = Icons.edit;
+    TextInputType keyboardType = TextInputType.text;
+
+    switch (field) {
+      case 'company':
+        fieldLabel = 'Nombre de la Empresa';
+        fieldIcon = Icons.business;
+        break;
+      case 'contact':
+        fieldLabel = 'Nombre del Contacto';
+        fieldIcon = Icons.person;
+        break;
+      case 'email':
+        fieldLabel = 'Email';
+        fieldIcon = Icons.email;
+        keyboardType = TextInputType.emailAddress;
+        break;
+      case 'phone':
+        fieldLabel = 'Teléfono';
+        fieldIcon = Icons.phone;
+        keyboardType = TextInputType.phone;
+        break;
+      case 'amount':
+        fieldLabel = 'Monto Estimado (€)';
+        fieldIcon = Icons.euro;
+        keyboardType = TextInputType.number;
+        break;
+      case 'sector':
+        fieldLabel = 'Sector';
+        fieldIcon = Icons.business_center;
+        break;
+      case 'teamSize':
+        fieldLabel = 'Tamaño del Equipo';
+        fieldIcon = Icons.people;
+        break;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardDark,
+        title: Text('Editar $fieldLabel', style: const TextStyle(color: AppColors.textLight)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: keyboardType,
+          style: const TextStyle(color: AppColors.textLight),
+          decoration: InputDecoration(
+            labelText: fieldLabel,
+            labelStyle: const TextStyle(color: AppColors.textGray),
+            border: const OutlineInputBorder(),
+            prefixIcon: Icon(fieldIcon, color: AppColors.primaryPurple),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final newValue = controller.text.trim();
+              if (newValue.isEmpty && field != 'sector' && field != 'teamSize') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Este campo no puede estar vacío'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              // Actualizar el lead según el campo
+              switch (field) {
+                case 'company':
+                  provider.updateLeadInfo(lead.id, company: newValue);
+                  break;
+                case 'contact':
+                  provider.updateLeadInfo(lead.id, contact: newValue);
+                  break;
+                case 'email':
+                  provider.updateLeadInfo(lead.id, email: newValue);
+                  break;
+                case 'phone':
+                  provider.updateLeadInfo(lead.id, phone: newValue);
+                  break;
+                case 'amount':
+                  final amount = double.tryParse(newValue);
+                  if (amount != null) {
+                    provider.updateLeadInfo(lead.id, amount: amount);
+                  }
+                  break;
+                case 'sector':
+                  provider.updateLeadInfo(lead.id, sector: newValue.isEmpty ? '' : newValue);
+                  break;
+                case 'teamSize':
+                  provider.updateLeadInfo(lead.id, teamSize: newValue.isEmpty ? '' : newValue);
+                  break;
+              }
+
+              Navigator.of(context).pop();
+              setState(() {});
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('$fieldLabel actualizado'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryPurple,
+            ),
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showReassignDialog(BuildContext context, Lead lead) {
     final provider = context.read<CRMProvider>();
     showDialog(
@@ -366,6 +674,56 @@ class _InfoItem extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(value, style: const TextStyle(color: AppColors.textLight, fontSize: 16)),
+      ],
+    );
+  }
+}
+
+class _EditableInfoItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final VoidCallback onEdit;
+
+  const _EditableInfoItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 16, color: AppColors.textGray),
+            const SizedBox(width: 8),
+            Text(label, style: const TextStyle(color: AppColors.textGray, fontSize: 12)),
+            const Spacer(),
+            InkWell(
+              onTap: onEdit,
+              borderRadius: BorderRadius.circular(4),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(
+                  Icons.edit,
+                  size: 16,
+                  color: AppColors.primaryPurple,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(color: AppColors.textLight, fontSize: 16),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ],
     );
   }
