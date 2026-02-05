@@ -1,16 +1,62 @@
-# aetheria_crm
+# AetherIA CRM
 
-Sistema de gestión comercial profesional para AetherIA Agency
+Sistema de gestión de relaciones con clientes (CRM) desarrollado en Flutter.
 
-## Getting Started
+## 🚀 Características
 
-This project is a starting point for a Flutter application.
+- ✅ Dashboard con vista Kanban de leads (4x2 grid)
+- ✅ Gestión de leads con edición completa
+- ✅ Calendario de reuniones con estados (Completada/Perdida/Pendiente)
+- ✅ Sistema de tareas y seguimientos
+- ✅ Facturación y reportes
+- ✅ Integración con Firebase
+- ✅ Roles de usuario (Admin/Vendedor)
 
-A few resources to get you started if this is your first Flutter project:
+## 🛠️ Tecnologías
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- **Flutter 3.35.4**
+- **Dart 3.9.2**
+- **Firebase** (Firestore, Auth)
+- **Provider** para state management
+- **Material Design 3**
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 📦 Despliegue Web
+
+### Build Web
+```bash
+flutter build web --release
+```
+
+### Servir localmente
+```bash
+cd build/web
+python3 -m http.server 8000
+```
+
+## 🔧 Configuración
+
+1. Clona el repositorio
+2. Instala dependencias: `flutter pub get`
+3. Configura Firebase (google-services.json)
+4. Ejecuta: `flutter run -d chrome`
+
+## 📱 Credenciales de Prueba
+
+**Administrador:**
+- Email: admin@aetheriaagency.es
+- Password: admin123
+
+**Vendedor:**
+- Email: ivan@aetheriaagency.es
+- Password: password123
+
+## 🌐 Desplegar en Cloudflare Pages
+
+1. Conecta este repositorio en Cloudflare Pages
+2. Build command: `flutter build web --release`
+3. Build output: `build/web`
+4. Deploy automáticamente en cada push
+
+---
+
+Desarrollado por AetherIA Agency
